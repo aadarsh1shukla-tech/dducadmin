@@ -1,10 +1,471 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Aadarsh Shukla</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>DDUC Student Verification</title>
+  <style>
+    :root {
+      --primary-navy: #0F172A;
+      --secondary-blue: #1E3A8A;
+      --accent-green: #059669;
+      --accent-green-bg: #ECFDF5;
+      --bg-slate: #F1F5F9;
+      --card-bg: #FFFFFF;
+      --tile-bg: #F8FAFC;
+      --text-primary: #1E293B;
+      --text-secondary: #64748B;
+      --border-color: #E2E8F0;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      background-color: var(--bg-slate);
+      color: var(--text-primary);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 12px;
+    }
+
+    /* LOADING & ERROR OVERLAY */
+    #state-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--bg-slate);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      padding: 20px;
+    }
+
+    .spinner {
+      width: 42px;
+      height: 42px;
+      border: 4px solid var(--border-color);
+      border-top: 4px solid var(--primary-navy);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .state-text {
+      margin-top: 16px;
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+      font-weight: 600;
+      text-align: center;
+    }
+
+    .error-card {
+      max-width: 400px;
+      width: 100%;
+      background: #FFFFFF;
+      padding: 28px;
+      border-radius: 14px;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.08);
+      text-align: center;
+      border: 1px solid var(--border-color);
+    }
+
+    .error-card h2 {
+      color: #C62828;
+      margin: 12px 0 8px;
+      font-size: 1.25rem;
+    }
+
+    .error-card p {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+
+    /* CARD CONTAINER */
+    .verification-card {
+      width: 100%;
+      max-width: 620px;
+      background: var(--card-bg);
+      border-radius: 16px;
+      box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+      overflow: hidden;
+      border: 1px solid var(--border-color);
+      display: none;
+    }
+
+    .card-header {
+      background: linear-gradient(135deg, var(--primary-navy) 0%, var(--secondary-blue) 100%);
+      color: #FFFFFF;
+      padding: 18px 20px;
+      text-align: center;
+    }
+
+    .college-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+    }
+
+    .college-subtitle {
+      font-size: 0.78rem;
+      color: #93C5FD;
+      font-weight: 500;
+      margin-top: 3px;
+      letter-spacing: 0.3px;
+    }
+
+    .status-banner {
+      background-color: var(--accent-green-bg);
+      color: var(--accent-green);
+      border-bottom: 1px solid #A7F3D0;
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background-color: var(--accent-green);
+      border-radius: 50%;
+      position: relative;
+    }
+
+    .status-dot::after {
+      content: '';
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      background-color: var(--accent-green);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); opacity: 0.8; }
+      70% { transform: scale(2.5); opacity: 0; }
+      100% { transform: scale(1); opacity: 0; }
+    }
+
+    .photo-section {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px 20px 10px 20px;
+      background: #FFFFFF;
+    }
+
+    .avatar-wrapper {
+      width: 110px;
+      height: 135px;
+      flex-shrink: 0;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 3px solid #FFFFFF;
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.14);
+      background-color: var(--tile-bg);
+    }
+
+    .avatar-wrapper img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .details-grid {
+      padding: 12px 20px 20px 20px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .detail-item {
+      background-color: var(--tile-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .detail-item.full-width {
+      grid-column: span 2;
+    }
+
+    .detail-label {
+      font-size: 0.68rem;
+      color: var(--text-secondary);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .detail-value {
+      font-size: 0.92rem;
+      color: var(--text-primary);
+      font-weight: 700;
+      word-break: break-word;
+      margin-top: 3px;
+    }
+
+    .detail-value.name-highlight {
+      font-size: 1.15rem;
+      color: var(--primary-navy);
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      color: var(--accent-green);
+      font-weight: 800;
+    }
+
+    .card-footer {
+      background-color: var(--tile-bg);
+      padding: 10px 20px;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    .group-tag {
+      font-weight: 700;
+      color: var(--secondary-blue);
+    }
+
+    @media (max-width: 480px) {
+      body { padding: 8px; }
+      .card-header { padding: 14px 16px; }
+      .college-title { font-size: 1.05rem; }
+      .photo-section { padding: 16px 16px 8px 16px; }
+      .avatar-wrapper { width: 95px; height: 118px; }
+      .details-grid { grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px 14px 16px 14px; }
+      .detail-item { padding: 8px 10px; }
+      .detail-label { font-size: 0.64rem; }
+      .detail-value { font-size: 0.85rem; }
+      .detail-value.name-highlight { font-size: 1rem; }
+      .card-footer { padding: 10px 14px; }
+    }
+  </style>
 </head>
 <body>
-  <h1>Hello, I'm Aadarsh!</h1>
-  <p>My first GitHub website.</p>
+
+  <!-- LOADING / ERROR OVERLAY -->
+  <div id="state-overlay">
+    <div id="loader-content">
+      <div class="spinner"></div>
+      <div class="state-text">Verifying credentials...</div>
+    </div>
+    <div id="error-content" style="display: none;">
+      <div class="error-card">
+        <div style="font-size: 42px;">❌</div>
+        <h2>Invalid QR Code</h2>
+        <p id="error-message">This QR code is not valid or the record no longer exists.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- VERIFICATION CARD -->
+  <div class="verification-card" id="card-container">
+    <div class="card-header">
+      <div class="college-title">Deen Dayal Upadhyaya College</div>
+      <div class="college-subtitle">University of Delhi • Student ID Verification</div>
+    </div>
+
+    <div class="status-banner">
+      <span class="status-dot"></span>
+      <span>VERIFIED STUDENT RECORD</span>
+    </div>
+
+    <div class="photo-section">
+      <div class="avatar-wrapper">
+        <img 
+          id="student-photo" 
+          src="" 
+          alt="Student Photo" 
+          onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'110\' height=\'135\' viewBox=\'0 0 110 135\' fill=\'%23F8FAFC\'><rect width=\'100%\' height=\'100%\'/><text x=\'50%\' y=\'50%\' font-family=\'sans-serif\' font-size=\'12\' fill=\'%2364748B\' text-anchor=\'middle\' dy=\'.3em\'>No Photo</text></svg>';"
+        >
+      </div>
+    </div>
+
+    <div class="details-grid">
+      <div class="detail-item full-width">
+        <span class="detail-label">Student Name</span>
+        <span class="detail-value name-highlight" id="student-name">--</span>
+      </div>
+
+      <div class="detail-item full-width">
+        <span class="detail-label">Course Name</span>
+        <span class="detail-value" id="student-course">--</span>
+      </div>
+
+      <div class="detail-item">
+        <span class="detail-label">College Roll No.</span>
+        <span class="detail-value" id="student-roll">--</span>
+      </div>
+
+      <div class="detail-item">
+        <span class="detail-label">Exam Roll No.</span>
+        <span class="detail-value" id="student-exam-roll">--</span>
+      </div>
+      
+      <div class="detail-item">
+        <span class="detail-label">Date of Birth</span>
+        <span class="detail-value" id="student-dob">--</span>
+      </div>
+
+      <div class="detail-item">
+        <span class="detail-label">Admission Year</span>
+        <span class="detail-value" id="student-admission-year">--</span>
+      </div>
+
+       <div class="detail-item">
+        <span class="detail-label">Student's Mobile No.</span>
+        <span class="detail-value" id="student-mobile">--</span>
+      </div>
+     
+      <div class="detail-item">
+        <span class="detail-label">Institutional Email</span>
+        <span class="detail-value" id="student-email">--</span>
+      </div>
+
+
+      <div class="detail-item">
+        <span class="detail-label">Father's Name</span>
+        <span class="detail-value" id="student-father">--</span>
+      </div>
+
+      <div class="detail-item">
+        <span class="detail-label">Father's Mobile</span>
+        <span class="detail-value" id="father-mobile">--</span>
+      </div>
+
+      <div class="detail-item full-width">
+        <span class="detail-label">Local Address</span>
+        <span class="detail-value" id="student-address">--</span>
+      </div>
+
+             
+      <div class="detail-item">
+        <span class="detail-label">Valid Upto</span>
+        <span class="detail-value" id="student-valid-upto">--</span>
+      </div>
+  
+
+      <div class="detail-item">
+        <span class="detail-label">Status</span>
+        <span class="detail-value status-pill">✓ <span id="student-status">Verified</span></span>
+      </div>
+    </div>
+
+    <div class="card-footer">
+      <span>Group: <strong class="group-tag" id="group-name">--</strong></span>
+      <span>Scanned: <strong id="scan-time">--:--</strong></span>
+    </div>
+  </div>
+
+  <script>
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzyng7VUSgmvVEeFBseYPchZAcjE5YmkcvUZ82UBZcsS9fIA9Z8zmgW3kNOLvL0igwe/exec";
+
+    function verifyStudent() {
+      const overlay = document.getElementById("state-overlay");
+      const cardContainer = document.getElementById("card-container");
+
+      const queryString = window.location.search;
+      if (!queryString) {
+        showError("No security parameters provided.");
+        return;
+      }
+
+      // Generate dynamic JSONP callback to resolve CORS policy cleanly
+      const callbackName = "jsonp_cb_" + Math.floor(Math.random() * 1000000);
+
+      window[callbackName] = function(data) {
+        delete window[callbackName];
+        if (scriptTag.parentNode) {
+          scriptTag.parentNode.removeChild(scriptTag);
+        }
+
+        if (!data.success) {
+          showError(data.message || "Invalid or expired QR code.");
+          return;
+        }
+
+        populateCard(data.student, data.groupName);
+        overlay.style.display = "none";
+        cardContainer.style.display = "block";
+      };
+
+      const scriptTag = document.createElement("script");
+      scriptTag.src = WEB_APP_URL + queryString + "&callback=" + callbackName;
+      
+      scriptTag.onerror = function() {
+        showError("Unable to reach verification server. Ensure Apps Script deployment access is set to 'Anyone'.");
+      };
+
+      document.body.appendChild(scriptTag);
+    }
+
+    function showError(msg) {
+      document.getElementById("loader-content").style.display = "none";
+      document.getElementById("error-message").innerText = msg;
+      document.getElementById("error-content").style.display = "block";
+    }
+
+    function populateCard(student, groupName) {
+      document.getElementById("student-photo").src = student.photoUrl;
+      document.getElementById("student-name").innerText = student.name;
+      document.getElementById("student-course").innerText = student.courseName;
+      document.getElementById("student-roll").innerText = student.rollNo;
+      document.getElementById("student-exam-roll").innerText = student.examRollNo;
+      document.getElementById("student-father").innerText = student.fatherName;
+      document.getElementById("student-dob").innerText = student.dob;
+      document.getElementById("student-admission-year").innerText = student.yearOfAdmission;
+      document.getElementById("student-mobile").innerText = student.studentMobile;
+      document.getElementById("father-mobile").innerText = student.fatherMobile;
+      document.getElementById("student-valid-upto").innerText = student.validUpto;
+      document.getElementById("student-email").innerText = student.institutionalEmail;
+      document.getElementById("student-address").innerText = student.localAddress;
+      document.getElementById("student-status").innerText = student.status;
+      document.getElementById("group-name").innerText = groupName;
+
+      document.getElementById("scan-time").innerText = new Date().toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+    }
+
+    verifyStudent();
+  </script>
 </body>
 </html>
